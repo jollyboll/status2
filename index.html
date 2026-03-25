@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Trading Dashboard - Supabase</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 12px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Login Modal */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-modal {
+            background: linear-gradient(135deg, #1e1a3a 0%, #2a1e4a 100%);
+            border-radius: 24px;
+            padding: 30px 25px;
+            width: 100%;
+            max-width: 350px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .login-modal h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 24px;
+        }
+
+        .login-modal .logo {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            margin-bottom: 18px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: #e0e0e0;
+            font-size: 16px;
+            transition: all 0.3s;
+            -webkit-appearance: none;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .login-btn:active {
+            transform: scale(0.98);
+        }
+
+        .error-message-login {
+            background: rgba(248, 113, 113, 0.2);
+            border: 1px solid #f87171;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 15px;
+            text-align: center;
+            color: #f87171;
+            font-size: 13px;
+            display: none;
+        }
+
+        .logout-btn {
+            background: rgba(248, 113, 113, 0.2);
+            border: 1px solid #f87171;
+            color: #f87171;
+            padding: 5px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-left: 8px;
+            font-size: 14px;
+        }
+
+        .logout-btn:active {
+            transform: scale(0.95);
+        }
+
+        header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .header-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .last-update {
+            font-size: 0.7rem;
+            color: #888;
+        }
+
+        .refresh-btn {
+            background: rgba(0, 212, 255, 0.2);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+            color: #00d4ff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+
+        .refresh-btn:active {
+            transform: scale(0.95);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: #888;
+            padding: 8px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 8px;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            color: #00d4ff;
+            background: rgba(0, 212, 255, 0.2);
+            border-bottom: 2px solid #00d4ff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #aaa;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #fff, #00d4ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .analytics-grid {
+                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            }
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            .tab-btn {
+                font-size: 14px;
+                padding: 10px 20px;
+            }
+        }
+
+        .analytics-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .analytics-card h3 {
+            margin-bottom: 12px;
+            color: #00d4ff;
+            font-size: 1rem;
+        }
+
+        .stat-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+        }
+
+        .stat-label {
+            color: #aaa;
+        }
+
+        .stat-number {
+            font-weight: bold;
+            color: #e0e0e0;
+        }
+
+        .top-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .top-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .top-symbol {
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .best-worst-days {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            text-align: center;
+        }
+
+        .highlight-positive {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #4ade80;
+            margin-top: 6px;
+        }
+
+        .highlight-negative {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #f87171;
+            margin-top: 6px;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .chart-container h2 {
+            margin-bottom: 12px;
+            color: #00d4ff;
+            font-size: 1rem;
+        }
+
+        canvas {
+            max-height: 300px;
+        }
+
+        .period-controls, .session-controls {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .date-range {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .date-range label {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .date-range input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e0e0e0;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .apply-btn, .reset-btn {
+            background: rgba(0, 212, 255, 0.2);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+            color: #00d4ff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .quick-filters {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .quick-filter, .session-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #e0e0e0;
+            padding: 6px 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.3s;
+        }
+
+        .session-btn.active {
+            background: rgba(0, 212, 255, 0.5);
+            color: white;
+        }
+
+        .trades-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .trades-section h2 {
+            margin-bottom: 12px;
+            color: #00d4ff;
+            font-size: 1rem;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+
+        th, td {
+            padding: 8px 6px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background: rgba(0, 212, 255, 0.1);
+            font-weight: 600;
+            color: #00d4ff;
+            font-size: 0.7rem;
+        }
+
+        .pnl-positive {
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        .pnl-negative {
+            color: #f87171;
+            font-weight: bold;
+        }
+
+        .direction-long {
+            color: #4ade80;
+        }
+
+        .direction-short {
+            color: #f87171;
+        }
+
+        .session-asia { color: #fbbf24; }
+        .session-europe { color: #60a5fa; }
+        .session-overlap { color: #c084fc; }
+        .session-america { color: #34d399; }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+            font-size: 12px;
+        }
+
+        .error-message {
+            background: rgba(248, 113, 113, 0.2);
+            border: 1px solid #f87171;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 15px;
+            text-align: center;
+            color: #f87171;
+            font-size: 12px;
+        }
+
+        .debug-panel {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 15px;
+            font-family: monospace;
+            font-size: 0.7rem;
+            color: #888;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Modal -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-modal">
+            <div class="logo">📊</div>
+            <h2>Trading Dashboard</h2>
+            <form id="loginForm" onsubmit="return false;">
+                <div class="input-group">
+                    <label>👤 Имя пользователя</label>
+                    <input type="text" id="username" placeholder="Введите имя пользователя" autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <label>🔒 Пароль</label>
+                    <input type="password" id="password" placeholder="Введите пароль">
+                </div>
+                <button type="submit" class="login-btn" onclick="checkLogin()">Войти</button>
+                <div id="loginError" class="error-message-login"></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="container" id="mainContent" style="display: none;">
+        <header>
+            <h1>📊 Trading Dashboard</h1>
+            <div class="header-controls">
+                <span class="last-update" id="lastUpdate">Загрузка данных...</span>
+                <button class="refresh-btn" onclick="loadData()">🔄</button>
+                <button class="logout-btn" onclick="logout()">🚪</button>
+            </div>
+        </header>
+
+        <div class="debug-panel">
+            <strong>🔍</strong> <span id="debugStatus">Инициализация...</span>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="tab-btn active" data-tab="today">📅 Сегодня</button>
+            <button class="tab-btn" data-tab="analytics">📈 Аналитика</button>
+            <button class="tab-btn" data-tab="period">📊 Период</button>
+        </div>
+
+        <!-- Вкладка: Текущие сутки -->
+        <div id="tab-today" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-title">Сделок</div><div class="stat-value" id="todayTrades">0</div></div>
+                <div class="stat-card"><div class="stat-title">PNL</div><div class="stat-value" id="todayPnl">0</div></div>
+                <div class="stat-card"><div class="stat-title">Win Rate</div><div class="stat-value" id="todayWinRate">0%</div></div>
+                <div class="stat-card"><div class="stat-title">Средний</div><div class="stat-value" id="todayAvgPnl">0</div></div>
+            </div>
+
+            <div class="chart-container">
+                <h2>📈 Кумулятивный PNL</h2>
+                <canvas id="todayCumulativeChart"></canvas>
+            </div>
+
+            <div class="trades-section">
+                <h2>📋 Сделки</h2>
+                <div class="table-wrapper">
+                    <table id="todayTradesTable">
+                        <thead><tr><th>Время</th><th>Символ</th><th>Цена</th><th>PNL</th><th>Напр.</th></tr></thead>
+                        <tbody id="todayTradesBody"><tr><td colspan="5" class="loading">Загрузка...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка: Расширенная аналитика -->
+        <div id="tab-analytics" class="tab-content">
+            <div class="analytics-grid">
+                <div class="analytics-card">
+                    <h3>📊 Общая статистика</h3>
+                    <div class="stat-list">
+                        <div class="stat-item"><span class="stat-label">Всего сделок:</span><span class="stat-number" id="totalTrades">0</span></div>
+                        <div class="stat-item"><span class="stat-label">Общий PNL:</span><span class="stat-number" id="totalPnl">0</span></div>
+                        <div class="stat-item"><span class="stat-label">Win Rate:</span><span class="stat-number" id="winRate">0%</span></div>
+                        <div class="stat-item"><span class="stat-label">Profit Factor:</span><span class="stat-number" id="profitFactor">0</span></div>
+                        <div class="stat-item"><span class="stat-label">Макс. просадка:</span><span class="stat-number" id="maxDrawdown">0</span></div>
+                    </div>
+                </div>
+
+                <div class="analytics-card">
+                    <h3>📈 По направлениям</h3>
+                    <canvas id="directionChart" style="max-height: 200px;"></canvas>
+                    <div class="stat-list">
+                        <div class="stat-item"><span class="stat-label">Long PNL:</span><span class="stat-number" id="longPnl">0</span></div>
+                        <div class="stat-item"><span class="stat-label">Short PNL:</span><span class="stat-number" id="shortPnl">0</span></div>
+                    </div>
+                </div>
+
+                <div class="analytics-card">
+                    <h3>🏆 Топ символы</h3>
+                    <div id="topSymbolsList" class="top-list"></div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h2>📈 Кумулятивный PNL</h2>
+                <canvas id="cumulativeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Вкладка: Период и сессии -->
+        <div id="tab-period" class="tab-content">
+            <div class="period-controls">
+                <div class="date-range">
+                    <input type="date" id="startDate" placeholder="Начало">
+                    <span>—</span>
+                    <input type="date" id="endDate" placeholder="Конец">
+                    <button class="apply-btn" onclick="applyPeriodFilter()">✅</button>
+                    <button class="reset-btn" onclick="resetPeriodFilter()">🔄</button>
+                </div>
+                <div class="quick-filters">
+                    <button class="quick-filter" data-days="1">1д</button>
+                    <button class="quick-filter" data-days="7">7д</button>
+                    <button class="quick-filter" data-days="30">30д</button>
+                    <button class="quick-filter" data-days="90">90д</button>
+                </div>
+            </div>
+
+            <div class="session-controls">
+                <div class="session-buttons">
+                    <button class="session-btn" data-session="asia">🇯🇵 Азия</button>
+                    <button class="session-btn" data-session="europe">🇪🇺 Европа</button>
+                    <button class="session-btn" data-session="overlap">🔄 Оверлэп</button>
+                    <button class="session-btn" data-session="america">🇺🇸 Америка</button>
+                    <button class="session-btn active" data-session="all">🌍 Все</button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-title">Сделок</div><div class="stat-value" id="periodTrades">0</div></div>
+                <div class="stat-card"><div class="stat-title">PNL</div><div class="stat-value" id="periodPnl">0</div></div>
+                <div class="stat-card"><div class="stat-title">Win Rate</div><div class="stat-value" id="periodWinRate">0%</div></div>
+            </div>
+
+            <div class="chart-container">
+                <h2>📈 Кумулятивный PNL</h2>
+                <canvas id="periodCumulativeChart"></canvas>
+            </div>
+
+            <div class="trades-section">
+                <h2>📋 Сделки</h2>
+                <div class="table-wrapper">
+                    <table id="periodTradesTable">
+                        <thead><tr><th>Дата</th><th>Символ</th><th>PNL</th><th>Сессия</th></tr></thead>
+                        <tbody id="periodTradesBody"><tr><td colspan="4" class="loading">Загрузка...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация Supabase
+        const SUPABASE_URL = 'https://kwswtzlehpuwixmbimbu.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6uo2e2yK88bdotSMBkm48w_KvFz7zzR';
+        
+        const AUTH_CREDENTIALS = { username: 'azs', password: 'azs123' };
+        
+        const SESSIONS = {
+            asia: { name: '🇯🇵 Азия', hours: [23, 0, 1, 2, 3, 4, 5, 6] },
+            europe: { name: '🇪🇺 Европа', hours: [8, 9, 10, 11, 12] },
+            overlap: { name: '🔄 Оверлэп', hours: [12, 13, 14, 15] },
+            america: { name: '🇺🇸 Америка', hours: [15, 16, 17, 18, 19, 20, 21] }
+        };
+        
+        let allTrades = [];
+        let currentPeriodFilter = { startDate: null, endDate: null, session: 'all' };
+        let charts = {};
+
+        function getSessionByHour(hour) {
+            if (hour >= 23 || hour <= 6) return 'asia';
+            if (hour >= 8 && hour <= 12) return 'europe';
+            if (hour >= 12 && hour <= 15) return 'overlap';
+            if (hour >= 15 && hour <= 21) return 'america';
+            return null;
+        }
+
+        function getTradeSession(trade) {
+            const date = new Date(trade.trade_date);
+            const hour = date.getUTCHours();
+            const session = getSessionByHour(hour);
+            return session ? { ...SESSIONS[session], key: session } : null;
+        }
+
+        function formatPnl(value) {
+            if (value === undefined || value === null) return '0';
+            const num = parseFloat(value);
+            if (isNaN(num)) return '0';
+            const sign = num >= 0 ? '+' : '';
+            return sign + num.toFixed(2);
+        }
+
+        function formatDate(dateStr, short = false) {
+            if (!dateStr) return '';
+            try {
+                const date = new Date(dateStr);
+                if (short) {
+                    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                }
+                return date.toLocaleString('ru-RU', {
+                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                });
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        function updateDebug(message) {
+            const el = document.getElementById('debugStatus');
+            if (el) el.textContent = message;
+            console.log(message);
+        }
+
+        function calculateStats(trades) {
+            if (!trades || trades.length === 0) {
+                return { totalTrades: 0, totalPnl: 0, winningTrades: 0, winRate: 0, profitFactor: 0, maxDrawdown: 0, bestTrade: 0, worstTrade: 0 };
+            }
+            const totalPnl = trades.reduce((s, t) => s + t.pnl, 0);
+            const winningTrades = trades.filter(t => t.pnl > 0).length;
+            const winRate = (winningTrades / trades.length * 100).toFixed(1);
+            const profits = trades.filter(t => t.pnl > 0).map(t => t.pnl);
+            const losses = trades.filter(t => t.pnl < 0).map(t => Math.abs(t.pnl));
+            const avgProfit = profits.length ? profits.reduce((a, b) => a + b, 0) / profits.length : 0;
+            const avgLoss = losses.length ? losses.reduce((a, b) => a + b, 0) / losses.length : 0;
+            const profitFactor = avgLoss > 0 ? avgProfit / avgLoss : profits.length ? 999 : 0;
+            
+            let cumulative = 0, maxCumulative = 0, maxDrawdown = 0;
+            [...trades].sort((a, b) => new Date(a.trade_date) - new Date(b.trade_date)).forEach(t => {
+                cumulative += t.pnl;
+                if (cumulative > maxCumulative) maxCumulative = cumulative;
+                maxDrawdown = Math.max(maxDrawdown, maxCumulative - cumulative);
+            });
+            
+            return {
+                totalTrades: trades.length, totalPnl, winningTrades, winRate,
+                profitFactor: profitFactor.toFixed(2), maxDrawdown: maxDrawdown.toFixed(2),
+                bestTrade: Math.max(...trades.map(t => t.pnl)), worstTrade: Math.min(...trades.map(t => t.pnl))
+            };
+        }
+
+        function calculateDirectionStats(trades) {
+            const longTrades = trades.filter(t => t.direction === 'long');
+            const shortTrades = trades.filter(t => t.direction === 'short');
+            return {
+                long: { pnl: longTrades.reduce((s, t) => s + t.pnl, 0) },
+                short: { pnl: shortTrades.reduce((s, t) => s + t.pnl, 0) }
+            };
+        }
+
+        function getTopSymbols(trades, limit = 5) {
+            const symbolMap = new Map();
+            trades.forEach(t => symbolMap.set(t.symbol, (symbolMap.get(t.symbol) || 0) + t.pnl));
+            return Array.from(symbolMap.entries()).map(([s, p]) => ({ symbol: s, pnl: p })).sort((a, b) => b.pnl - a.pnl).slice(0, limit);
+        }
+
+        function calculateCumulativePnl(trades) {
+            const sorted = [...trades].sort((a, b) => new Date(a.trade_date) - new Date(b.trade_date));
+            let cum = 0;
+            return sorted.map(t => { cum += t.pnl; return cum; });
+        }
+
+        function filterTradesByDateRange(trades, startDate, endDate) {
+            if (!startDate && !endDate) return trades;
+            const start = startDate ? new Date(startDate) : null;
+            const end = endDate ? new Date(endDate) : null;
+            if (end) end.setHours(23, 59, 59, 999);
+            return trades.filter(t => {
+                const td = new Date(t.trade_date);
+                if (start && td < start) return false;
+                if (end && td > end) return false;
+                return true;
+            });
+        }
+
+        function filterTradesBySession(trades, sessionKey) {
+            if (sessionKey === 'all') return trades;
+            return trades.filter(t => getTradeSession(t)?.key === sessionKey);
+        }
+
+        function updateCumulativeChart(trades, canvasId, title) {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+            const sorted = [...trades].sort((a, b) => new Date(a.trade_date) - new Date(b.trade_date));
+            const cumulative = calculateCumulativePnl(trades);
+            const labels = sorted.map((_, i) => i + 1);
+            if (charts[canvasId]) charts[canvasId].destroy();
+            charts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets: [{ label: title, data: cumulative, borderColor: '#00d4ff', backgroundColor: 'rgba(0,212,255,0.1)', fill: true, tension: 0.4, pointRadius: 2 }] },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#e0e0e0', font: { size: 10 } } } }, scales: { y: { ticks: { color: '#aaa', callback: v => formatPnl(v) } }, x: { ticks: { color: '#aaa', font: { size: 9 } } } } }
+            });
+        }
+
+        function updateDirectionChart(trades) {
+            const stats = calculateDirectionStats(trades);
+            const ctx = document.getElementById('directionChart');
+            if (!ctx) return;
+            if (charts.direction) charts.direction.destroy();
+            charts.direction = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: ['Long', 'Short'], datasets: [{ label: 'PNL', data: [stats.long.pnl, stats.short.pnl], backgroundColor: ['#4ade80', '#f87171'] }] },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#e0e0e0', font: { size: 10 } } } }, scales: { y: { ticks: { color: '#aaa', callback: v => formatPnl(v) } } } }
+            });
+        }
+
+        async function loadData() {
+            try {
+                updateDebug('Загрузка данных...');
+                const url = `${SUPABASE_URL}/rest/v1/trades?select=*&order=trade_date.desc&limit=2000`;
+                const response = await fetch(url, {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const trades = await response.json();
+                allTrades = trades;
+                updateDebug(`✅ Загружено ${allTrades.length} сделок`);
+                document.getElementById('lastUpdate').innerHTML = `${new Date().toLocaleTimeString()} (${allTrades.length})`;
+                
+                if (allTrades.length > 0) {
+                    updateTodayTab();
+                    updateAnalyticsTab();
+                    updatePeriodTab();
+                }
+            } catch (error) {
+                updateDebug(`❌ ${error.message}`);
+                document.getElementById('todayTradesBody').innerHTML = `<tr><td colspan="5" class="error-message">Ошибка: ${error.message}</td></tr>`;
+            }
+        }
+
+        function updateTodayTab() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayTrades = allTrades.filter(t => new Date(t.trade_date).toISOString().split('T')[0] === today);
+            const stats = calculateStats(todayTrades);
+            
+            document.getElementById('todayTrades').textContent = stats.totalTrades;
+            document.getElementById('todayPnl').textContent = formatPnl(stats.totalPnl);
+            document.getElementById('todayWinRate').textContent = `${stats.winRate}%`;
+            document.getElementById('todayAvgPnl').textContent = formatPnl(stats.totalTrades ? stats.totalPnl / stats.totalTrades : 0);
+            
+            const tbody = document.getElementById('todayTradesBody');
+            const sorted = [...todayTrades].sort((a, b) => new Date(b.trade_date) - new Date(a.trade_date));
+            if (sorted.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="loading">Нет сделок</td></tr>';
+            } else {
+                tbody.innerHTML = sorted.map(t => `
+                    <tr>
+                        <td>${formatDate(t.trade_date, true)}</td>
+                        <td><strong>${t.symbol}</strong></td>
+                        <td>${t.price.toFixed(4)}</td>
+                        <td class="${t.pnl >= 0 ? 'pnl-positive' : 'pnl-negative'}">${formatPnl(t.pnl)}</td>
+                        <td class="${t.direction === 'long' ? 'direction-long' : 'direction-short'}">${t.direction === 'long' ? 'L' : 'S'}</td>
+                    </tr>
+                `).join('');
+            }
+            updateCumulativeChart(todayTrades, 'todayCumulativeChart', 'PNL');
+        }
+
+        function updateAnalyticsTab() {
+            const stats = calculateStats(allTrades);
+            const directionStats = calculateDirectionStats(allTrades);
+            const topSymbols = getTopSymbols(allTrades, 5);
+            
+            document.getElementById('totalTrades').textContent = stats.totalTrades;
+            document.getElementById('totalPnl').textContent = formatPnl(stats.totalPnl);
+            document.getElementById('winRate').textContent = `${stats.winRate}%`;
+            document.getElementById('profitFactor').textContent = stats.profitFactor;
+            document.getElementById('maxDrawdown').textContent = formatPnl(stats.maxDrawdown);
+            document.getElementById('longPnl').textContent = formatPnl(directionStats.long.pnl);
+            document.getElementById('shortPnl').textContent = formatPnl(directionStats.short.pnl);
+            
+            const topDiv = document.getElementById('topSymbolsList');
+            topDiv.innerHTML = topSymbols.map(s => `<div class="top-item"><span class="top-symbol">${s.symbol}</span><span class="${s.pnl >= 0 ? 'pnl-positive' : 'pnl-negative'}">${formatPnl(s.pnl)}</span></div>`).join('');
+            
+            updateDirectionChart(allTrades);
+            updateCumulativeChart(allTrades, 'cumulativeChart', 'Кумулятивный PNL');
+        }
+
+        function updatePeriodTab() {
+            let filtered = filterTradesByDateRange(allTrades, currentPeriodFilter.startDate, currentPeriodFilter.endDate);
+            filtered = filterTradesBySession(filtered, currentPeriodFilter.session);
+            const stats = calculateStats(filtered);
+            
+            document.getElementById('periodTrades').textContent = stats.totalTrades;
+            document.getElementById('periodPnl').textContent = formatPnl(stats.totalPnl);
+            document.getElementById('periodWinRate').textContent = `${stats.winRate}%`;
+            
+            const tbody = document.getElementById('periodTradesBody');
+            const sorted = [...filtered].sort((a, b) => new Date(b.trade_date) - new Date(a.trade_date)).slice(0, 100);
+            if (sorted.length === 0) {
+                tbody.innerHTML = '<td><td colspan="4" class="loading">Нет данных</td></tr>';
+            } else {
+                tbody.innerHTML = sorted.map(t => {
+                    const session = getTradeSession(t);
+                    return `<tr>
+                        <td>${formatDate(t.trade_date)}</td>
+                        <td><strong>${t.symbol}</strong></td>
+                        <td class="${t.pnl >= 0 ? 'pnl-positive' : 'pnl-negative'}">${formatPnl(t.pnl)}</td>
+                        <td class="session-${session ? session.key : ''}">${session ? session.name : '-'}</td>
+                    </tr>`;
+                }).join('');
+            }
+            updateCumulativeChart(filtered, 'periodCumulativeChart', 'PNL');
+        }
+
+        function applyPeriodFilter() {
+            currentPeriodFilter.startDate = document.getElementById('startDate').value || null;
+            currentPeriodFilter.endDate = document.getElementById('endDate').value || null;
+            updatePeriodTab();
+        }
+
+        function resetPeriodFilter() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            currentPeriodFilter.startDate = null;
+            currentPeriodFilter.endDate = null;
+            updatePeriodTab();
+        }
+
+        function setDaysFilter(days) {
+            const end = new Date();
+            const start = new Date();
+            start.setDate(start.getDate() - days);
+            document.getElementById('startDate').value = start.toISOString().split('T')[0];
+            document.getElementById('endDate').value = end.toISOString().split('T')[0];
+            applyPeriodFilter();
+        }
+
+        function setSession(sessionKey) {
+            currentPeriodFilter.session = sessionKey;
+            document.querySelectorAll('.session-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.session === sessionKey) btn.classList.add('active');
+            });
+            updatePeriodTab();
+        }
+
+        function checkLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('loginError');
+            
+            if (username === AUTH_CREDENTIALS.username && password === AUTH_CREDENTIALS.password) {
+                localStorage.setItem('trading_auth', 'true');
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                loadData();
+            } else {
+                errorDiv.textContent = '❌ Неверный логин или пароль';
+                errorDiv.style.display = 'block';
+                setTimeout(() => errorDiv.style.display = 'none', 3000);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('trading_auth');
+            document.getElementById('loginOverlay').style.display = 'flex';
+            document.getElementById('mainContent').style.display = 'none';
+            allTrades = [];
+        }
+
+        function checkAuth() {
+            if (localStorage.getItem('trading_auth') === 'true') {
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                loadData();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+                });
+            });
+            
+            document.querySelectorAll('.quick-filter').forEach(btn => {
+                btn.addEventListener('click', () => setDaysFilter(parseInt(btn.dataset.days)));
+            });
+            
+            document.querySelectorAll('.session-btn').forEach(btn => {
+                btn.addEventListener('click', () => setSession(btn.dataset.session));
+            });
+            
+            setInterval(() => { if (localStorage.getItem('trading_auth') === 'true') loadData(); }, 60000);
+        });
+        
+        window.loadData = loadData;
+        window.applyPeriodFilter = applyPeriodFilter;
+        window.resetPeriodFilter = resetPeriodFilter;
+        window.setDaysFilter = setDaysFilter;
+        window.setSession = setSession;
+        window.checkLogin = checkLogin;
+        window.logout = logout;
+    </script>
+</body>
+</html>
