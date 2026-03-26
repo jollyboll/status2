@@ -6,6 +6,12 @@ const urlsToCache = [
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
+// Добавляем кэширование иконок (опционально)
+const iconSizes = ['48', '72', '96', '128', '144', '152', '192', '384', '512'];
+iconSizes.forEach(size => {
+  urlsToCache.push(`/icons/launchericon-${size}x${size}.png`);
+});
+
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
