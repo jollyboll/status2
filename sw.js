@@ -2,10 +2,10 @@ const CACHE_NAME = 'trading-dashboard-v1';
 const urlsToCache = [
   '/',
   '/index.html',
+  '/manifest.json',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
-// Установка Service Worker
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -13,26 +13,24 @@ self.addEventListener('install', event => {
         console.log('Cache opened');
         return cache.addAll(urlsToCache);
       })
+      .catch(err => {
+        console.log('Cache failed:', err);
+      })
   );
 });
 
-// Перехват запросов
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Возвращаем из кэша если есть
         if (response) {
           return response;
         }
-        // Иначе запрашиваем из сети
         return fetch(event.request)
           .then(response => {
-            // Не кэшируем запросы к API
-            if (event.request.url.includes('supabase.co')) {
+            if (!response || response.status !== 200 || event.request.url.includes('supabase.co')) {
               return response;
             }
-            // Клонируем ответ для кэширования
             const responseToCache = response.clone();
             caches.open(CACHE_NAME)
               .then(cache => {
@@ -44,14 +42,12 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// Обновление Service Worker
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
+          if (cacheName !== CACHE_NAME) {
             return caches.delete(cacheName);
           }
         })
